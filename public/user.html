@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LucidLua — Reseller Dashboard</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --blue:       #3b82f6;
+      --blue-light: #60a5fa;
+      --blue-sky:   #38bdf8;
+      --red:        #ef4444;
+      --red-dim:    rgba(239, 68, 68, 0.15);
+      --yellow:     #facc15;
+      --yellow-dim: rgba(250, 204, 21, 0.15);
+      --green:      #22c55e;
+      --green-dim:  rgba(34, 197, 94, 0.15);
+      --purple:     #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.15);
+      --bg-deep:    #020617;
+      --bg-card:    rgba(15, 23, 42, 0.6);
+      --border:     rgba(59, 130, 246, 0.2);
+      --text-muted: #94a3b8;
+      --text-dim:   #64748b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #0f172a, var(--bg-deep));
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── PARTICLE CANVAS ── */
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT WRAPPER ── */
+    .page {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: white;
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .nav-links .active {
+      color: white;
+      background: rgba(59, 130, 246, 0.18);
+    }
+
+    .nav-links .btn-nav {
+      color: white;
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      font-weight: 600;
+    }
+
+    .nav-links .btn-nav:hover {
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+      background: linear-gradient(90deg, var(--blue-light), var(--blue));
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    .login-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 73px);
+      padding: 40px 24px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px;
+      backdrop-filter: blur(20px);
+      text-align: center;
+    }
+
+    .login-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 24px;
+    }
+
+    .login-card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .login-footer {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .login-footer a {
+      color: var(--blue-light);
+      text-decoration: none;
+    }
+
+    .login-footer a:hover { text-decoration: underline; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .form-group select option {
+      background: #0f172a;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      text-decoration: none;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      color: white;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-danger {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* ── MESSAGES ── */
+    .msg {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .msg.error {
+      background: var(--red-dim);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .msg.success {
+      background: var(--green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #86efac;
+    }
+
+    .msg.show { display: block; }
+
+    /* ── DASHBOARD ── */
+    .dashboard {
+      display: none;
+      padding: 36px 40px 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .dashboard.visible { display: block; }
+
+    /* ── DASH HEADER ── */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .dash-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+    }
+
+    .user-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .user-pill-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .user-pill-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.blue   { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .stat-icon.green  { background: var(--green-dim);  border: 1px solid rgba(34, 197, 94, 0.3); }
+    .stat-icon.purple { background: var(--purple-dim); border: 1px solid rgba(167, 139, 250, 0.3); }
+
+    .stat-info .value {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-info .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── PANEL GRID ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .card-title h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* ── RESULT BOX ── */
+    .result-box {
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: var(--blue-light);
+      letter-spacing: 1px;
+      word-break: break-all;
+      display: none;
+    }
+
+    .result-box.show { display: block; }
+
+    .result-box .copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { color: white; }
+
+    /* ── CARD FULL ── */
+    .card-full {
+      margin-bottom: 24px;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(59, 130, 246, 0.07);
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+
+    tbody td {
+      padding: 12px 16px;
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child { color: white; }
+
+    .key-mono {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--blue-light);
+      letter-spacing: 0.5px;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-status.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-status.revoked {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-status.expired {
+      background: var(--yellow-dim);
+      color: var(--yellow);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .badge-dot-sm {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* ── BALANCE BAR ── */
+    .balance-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: rgba(59, 130, 246, 0.07);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .balance-bar .bal-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .balance-bar .bal-value {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ── SEARCH BAR ── */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus { border-color: var(--blue); }
+    .search-bar input::placeholder { color: var(--text-dim); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+
+    .toast.error {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .panel-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      nav { padding: 16px 20px; }
+
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(2, 6, 23, 0.97);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        gap: 4px;
+      }
+
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 12px 16px; }
+      .hamburger { display: flex; }
+
+      .dashboard { padding: 24px 20px 48px; }
+      .login-card { padding: 32px 24px; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .dash-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 420px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="page">
+
+  <!-- ── NAVBAR ── -->
+  <nav>
+    <a class="nav-brand" href="/">LucidLua</a>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/index.html">Redeem Key</a></li>
+      <li><a href="/user.html" class="active">Dashboard</a></li>
+      <li><a href="/admin.html">Admin</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── LOGIN SCREEN ── -->
+  <div class="login-wrap" id="loginScreen">
+    <div class="login-card">
+      <div class="login-icon">👤</div>
+      <h2>Reseller Login</h2>
+      <p>Sign in to your reseller account to generate and manage keys.</p>
+
+      <div class="form-group">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" placeholder="your_username" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary" onclick="doLogin()">
+        🔐 Sign In
+      </button>
+
+      <div class="msg" id="loginMsg"></div>
+
+      <div class="login-footer">
+        Need access? Contact an <a href="/admin.html">administrator</a>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="dashboard" id="dashboard">
+
+    <div class="dash-header">
+      <div>
+        <h1>👤 Reseller Dashboard</h1>
+        <p id="dashSubtitle">Welcome back!</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="user-pill">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div>
+            <div class="user-pill-name" id="userPillName">—</div>
+            <div class="user-pill-role" id="userPillRole">—</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()" style="padding:10px 18px;">
+          🚪 Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon blue">💰</div>
+        <div class="stat-info">
+          <div class="value" id="statBalance">—</div>
+          <div class="label">Key Balance</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div class="value" id="statGenerated">0</div>
+          <div class="label">Keys Generated</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">🔑</div>
+        <div class="stat-info">
+          <div class="value" id="statActive">0</div>
+          <div class="label">Active Keys</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PANEL GRID ── -->
+    <div class="panel-grid">
+
+      <!-- Generate Key -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">✨</div>
+            <h3>Generate Key</h3>
+          </div>
+        </div>
+
+        <div class="balance-bar">
+          <span class="bal-label">Available Balance</span>
+          <span class="bal-value" id="balanceDisplay">—</span>
+        </div>
+
+        <div class="form-group">
+          <label for="genDuration">Duration</label>
+          <select id="genDuration">
+            <option value="1">1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="30" selected>30 Days</option>
+            <option value="lifetime">Lifetime</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateKey()">
+          🔑 Generate Key
+        </button>
+
+        <div class="result-box" id="genResult">
+          <div class="copy-row">
+            <span id="genResultKey"></span>
+            <button class="copy-btn" onclick="copyKey('genResultKey')" title="Copy key">📋</button>
+          </div>
+        </div>
+
+        <div class="msg" id="genMsg"></div>
+      </div>
+
+      <!-- Account Info -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">👤</div>
+            <h3>Account Info</h3>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="padding:14px 16px;background:rgba(2,6,23,0.5);border:1px solid var(--border);border-radius:10px;">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Username</div>
+            <div style="font-size:15px;font-weight:600;" id="infoUsername">—</div>
+          </div>
+          <div style="padding:14px 16px;background:rgba(2,6,23,0.5);border:1px solid var(--border);border-radius:10px;">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Role</div>
+            <div style="font-size:15px;font-weight:600;" id="infoRole">—</div>
+          </div>
+          <div style="padding:14px 16px;background:rgba(2,6,23,0.5);border:1px solid var(--border);border-radius:10px;">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Key Balance</div>
+            <div style="font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--blue),var(--blue-sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="infoBalance">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── KEY HISTORY ── -->
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon">📋</div>
+          <h3>My Generated Keys</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadMyKeys()">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="keySearch" placeholder="🔍  Search keys…" oninput="filterKeys()">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>License Key</th>
+              <th>HWID</th>
+              <th>Expires</th>
+              <th>Status</th>
+              <th>Copy</th>
+            </tr>
+          </thead>
+          <tbody id="keysBody">
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <div class="empty-icon">🔑</div>
+                  <div>Generate your first key to see it here.</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.dashboard -->
+
+</div><!-- /.page -->
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ── STATE ── */
+  let currentUser = null;
+  let myKeys = [];
+
+  /* ── HAMBURGER ── */
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
+
+  /* ── TOAST ── */
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  /* ── SHOW MSG ── */
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = `msg ${type} show`;
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  /* ── LOGIN ── */
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+
+    if (!username || !password) {
+      showMsg('loginMsg', 'Please enter your username and password.', 'error');
+      return;
+    }
+
+    try {
+      const res  = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showMsg('loginMsg', 'Invalid username or password.', 'error');
+        return;
+      }
+
+      currentUser = data;
+      showDashboard(data);
+      loadMyKeys();
+    } catch (e) {
+      showMsg('loginMsg', 'Connection error. Try again.', 'error');
+    }
+  }
+
+  /* Allow Enter key */
+  ['loginUser', 'loginPass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  });
+
+  /* ── SHOW DASHBOARD ── */
+  function showDashboard(data) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').classList.add('visible');
+
+    const initial = (data.username || '?')[0].toUpperCase();
+    document.getElementById('userAvatar').textContent    = initial;
+    document.getElementById('userPillName').textContent  = data.username;
+    document.getElementById('userPillRole').textContent  = data.role;
+    document.getElementById('dashSubtitle').textContent  = `Welcome back, ${data.username}!`;
+    document.getElementById('infoUsername').textContent  = data.username;
+    document.getElementById('infoRole').textContent      = data.role.charAt(0).toUpperCase() + data.role.slice(1);
+    document.getElementById('infoBalance').textContent   = data.balance;
+    document.getElementById('statBalance').textContent   = data.balance;
+    document.getElementById('balanceDisplay').textContent = data.balance + ' keys';
+  }
+
+  /* ── LOGOUT ── */
+  function logout() {
+    currentUser = null;
+    myKeys = [];
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('dashboard').classList.remove('visible');
+  }
+
+  /* ── GENERATE KEY ── */
+  async function generateKey() {
+    if (!currentUser) return;
+
+    if (currentUser.balance <= 0) {
+      showMsg('genMsg', 'Insufficient balance. Contact an admin to top up.', 'error');
+      return;
+    }
+
+    const duration = document.getElementById('genDuration').value;
+
+    try {
+      const res  = await fetch('/user-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, duration })
+      });
+      const data = await res.json();
+
+      if (data.key) {
+        currentUser.balance--;
+        updateBalanceDisplay();
+
+        document.getElementById('genResultKey').textContent = data.key;
+        document.getElementById('genResult').classList.add('show');
+
+        // Add to local key list
+        myKeys.unshift({
+          key: data.key,
+          hwid: null,
+          revoked: false,
+          expiresAt: duration === 'lifetime'
+            ? new Date('2999-01-01')
+            : new Date(Date.now() + parseInt(duration) * 86400000)
+        });
+
+        renderKeys(myKeys);
+        updateKeyStats();
+        showToast('Key generated ✓');
+      } else {
+        showMsg('genMsg', typeof data === 'string' ? data : 'Failed to generate key.', 'error');
+      }
+    } catch (e) {
+      showMsg('genMsg', 'Connection error.', 'error');
+    }
+  }
+
+  /* ── UPDATE BALANCE DISPLAY ── */
+  function updateBalanceDisplay() {
+    const bal = currentUser.balance;
+    document.getElementById('statBalance').textContent   = bal;
+    document.getElementById('balanceDisplay').textContent = bal + ' keys';
+    document.getElementById('infoBalance').textContent   = bal;
+  }
+
+  /* ── COPY KEY ── */
+  function copyKey(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard ✓'));
+  }
+
+  /* ── LOAD MY KEYS ── */
+  async function loadMyKeys() {
+    if (!currentUser) return;
+
+    // The API doesn't have a per-user endpoint, so we load all and filter
+    // In a real app this would be a dedicated endpoint
+    try {
+      // We can't load keys without admin pass, so just render what we have locally
+      renderKeys(myKeys);
+      updateKeyStats();
+    } catch (e) {
+      // silently fail
+    }
+  }
+
+  /* ── UPDATE KEY STATS ── */
+  function updateKeyStats() {
+    const now = new Date();
+    const total  = myKeys.length;
+    const active = myKeys.filter(k => !k.revoked && new Date(k.expiresAt) > now).length;
+    document.getElementById('statGenerated').textContent = total;
+    document.getElementById('statActive').textContent    = active;
+  }
+
+  /* ── RENDER KEYS ── */
+  function renderKeys(keys) {
+    const tbody = document.getElementById('keysBody');
+    if (!keys.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🔑</div><div>No keys generated yet.</div></div></td></tr>`;
+      return;
+    }
+
+    const now = new Date();
+    tbody.innerHTML = keys.map(k => {
+      const expired = !k.revoked && new Date(k.expiresAt) < now;
+      const statusBadge = k.revoked
+        ? `<span class="badge-status revoked"><span class="badge-dot-sm"></span>Revoked</span>`
+        : expired
+          ? `<span class="badge-status expired"><span class="badge-dot-sm"></span>Expired</span>`
+          : `<span class="badge-status active"><span class="badge-dot-sm"></span>Active</span>`;
+
+      const expDate = new Date(k.expiresAt).getFullYear() >= 2999
+        ? 'Lifetime'
+        : new Date(k.expiresAt).toLocaleDateString();
+
+      return `
+        <tr>
+          <td><span class="key-mono">${k.key}</span></td>
+          <td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k.hwid || '<span style="color:var(--text-dim)">Not bound</span>'}</td>
+          <td>${expDate}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${k.key}').then(()=>showToast('Copied ✓'))" title="Copy key" style="font-size:16px;">📋</button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  /* ── FILTER KEYS ── */
+  function filterKeys() {
+    const q = document.getElementById('keySearch').value.toLowerCase();
+    const filtered = myKeys.filter(k => k.key.toLowerCase().includes(q));
+    renderKeys(filtered);
+  }
+
+  /* ── PARTICLE BACKGROUND ── */
+  const canvas = document.getElementById('bg');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const PARTICLE_COUNT = 90;
+  const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+    x:  Math.random() * canvas.width,
+    y:  Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.55,
+    vy: (Math.random() - 0.5) * 0.55,
+    r:  Math.random() * 1.5 + 0.5,
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(59,130,246,0.7)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2   = particles[j];
+        const dx   = p.x - p2.x;
+        const dy   = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(59,130,246,${0.18 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(drawParticles);
+  }
+
+  drawParticles();
+</script>
+
+</body>
+</html>

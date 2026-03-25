@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LucidLua — Admin Panel</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --blue:       #3b82f6;
+      --blue-light: #60a5fa;
+      --blue-sky:   #38bdf8;
+      --red:        #ef4444;
+      --red-dim:    rgba(239, 68, 68, 0.15);
+      --yellow:     #facc15;
+      --yellow-dim: rgba(250, 204, 21, 0.15);
+      --green:      #22c55e;
+      --green-dim:  rgba(34, 197, 94, 0.15);
+      --bg-deep:    #020617;
+      --bg-card:    rgba(15, 23, 42, 0.6);
+      --border:     rgba(59, 130, 246, 0.2);
+      --text-muted: #94a3b8;
+      --text-dim:   #64748b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #0f172a, var(--bg-deep));
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── PARTICLE CANVAS ── */
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT WRAPPER ── */
+    .page {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: white;
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .nav-links .active {
+      color: white;
+      background: rgba(59, 130, 246, 0.18);
+    }
+
+    .nav-links .btn-nav {
+      color: white;
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      font-weight: 600;
+    }
+
+    .nav-links .btn-nav:hover {
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+      background: linear-gradient(90deg, var(--blue-light), var(--blue));
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    /* ── LOGIN OVERLAY ── */
+    .login-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 73px);
+      padding: 40px 24px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px;
+      backdrop-filter: blur(20px);
+      text-align: center;
+    }
+
+    .login-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 24px;
+    }
+
+    .login-card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .form-group select option {
+      background: #0f172a;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      text-decoration: none;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      color: white;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .btn-danger {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-warning {
+      background: var(--yellow-dim);
+      color: var(--yellow);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .btn-warning:hover {
+      background: rgba(250, 204, 21, 0.25);
+      box-shadow: 0 4px 14px rgba(250, 204, 21, 0.2);
+    }
+
+    .btn-success {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-success:hover {
+      background: rgba(34, 197, 94, 0.25);
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.2);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ── ERROR / SUCCESS MESSAGES ── */
+    .msg {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .msg.error {
+      background: var(--red-dim);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .msg.success {
+      background: var(--green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #86efac;
+    }
+
+    .msg.show { display: block; }
+
+    /* ── DASHBOARD LAYOUT ── */
+    .dashboard {
+      display: none;
+      padding: 36px 40px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .dashboard.visible { display: block; }
+
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .dash-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.blue  { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .stat-icon.green { background: var(--green-dim); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .stat-icon.red   { background: var(--red-dim);   border: 1px solid rgba(239, 68, 68, 0.3); }
+    .stat-icon.yellow{ background: var(--yellow-dim);border: 1px solid rgba(250, 204, 21, 0.3); }
+
+    .stat-info .value {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-info .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── PANEL GRID ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .card-title h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* ── RESULT BOX ── */
+    .result-box {
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: var(--blue-light);
+      letter-spacing: 1px;
+      word-break: break-all;
+      display: none;
+    }
+
+    .result-box.show { display: block; }
+
+    .result-box .copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { color: white; }
+
+    /* ── FULL-WIDTH CARD ── */
+    .card-full {
+      margin-bottom: 24px;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(59, 130, 246, 0.07);
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+
+    tbody td {
+      padding: 12px 16px;
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child { color: white; }
+
+    .key-mono {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--blue-light);
+      letter-spacing: 0.5px;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-status.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-status.revoked {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-status.expired {
+      background: var(--yellow-dim);
+      color: var(--yellow);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .badge-dot-sm {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* ── SEARCH BAR ── */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: var(--blue);
+    }
+
+    .search-bar input::placeholder {
+      color: var(--text-dim);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+
+    .toast.error {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .panel-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      nav { padding: 16px 20px; }
+
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(2, 6, 23, 0.97);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        gap: 4px;
+      }
+
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 12px 16px; }
+      .hamburger { display: flex; }
+
+      .dashboard { padding: 24px 20px 48px; }
+      .login-card { padding: 32px 24px; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 420px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="page">
+
+  <!-- ── NAVBAR ── -->
+  <nav>
+    <a class="nav-brand" href="/">LucidLua</a>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/index.html">Redeem Key</a></li>
+      <li><a href="/user.html">Dashboard</a></li>
+      <li><a href="/admin.html" class="active">Admin</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── LOGIN SCREEN ── -->
+  <div class="login-wrap" id="loginScreen">
+    <div class="login-card">
+      <div class="login-icon">⚙️</div>
+      <h2>Admin Panel</h2>
+      <p>Enter your admin password to access the control panel.</p>
+
+      <div class="form-group">
+        <label for="adminPass">Admin Password</label>
+        <input type="password" id="adminPass" placeholder="••••••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary" onclick="adminLogin()">
+        🔐 Unlock Panel
+      </button>
+
+      <div class="msg" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="dashboard" id="dashboard">
+
+    <div class="dash-header">
+      <div>
+        <h1>⚙️ Admin Panel</h1>
+        <p>Full control over keys, users, and system settings.</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" style="padding:10px 18px;">
+        🚪 Logout
+      </button>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-icon blue">🔑</div>
+        <div class="stat-info">
+          <div class="value" id="statTotal">—</div>
+          <div class="label">Total Keys</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div class="value" id="statActive">—</div>
+          <div class="label">Active Keys</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">❌</div>
+        <div class="stat-info">
+          <div class="value" id="statRevoked">—</div>
+          <div class="label">Revoked Keys</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon yellow">⏱️</div>
+        <div class="stat-info">
+          <div class="value" id="statExpired">—</div>
+          <div class="label">Expired Keys</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TOP PANEL GRID ── -->
+    <div class="panel-grid">
+
+      <!-- Generate Key -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">🔑</div>
+            <h3>Generate Key</h3>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="genDuration">Duration</label>
+          <select id="genDuration">
+            <option value="1">1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="30" selected>30 Days</option>
+            <option value="lifetime">Lifetime</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateKey()">
+          ✨ Generate Key
+        </button>
+
+        <div class="result-box" id="genResult">
+          <div class="copy-row">
+            <span id="genResultKey"></span>
+            <button class="copy-btn" onclick="copyKey('genResultKey')" title="Copy key">📋</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Balance -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">💰</div>
+            <h3>Manage Balance</h3>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="balUser">Reseller Username</label>
+          <input type="text" id="balUser" placeholder="username">
+        </div>
+
+        <div class="form-group">
+          <label for="balAmount">Amount to Add</label>
+          <input type="number" id="balAmount" placeholder="10" min="1">
+        </div>
+
+        <button class="btn btn-primary" onclick="addBalance()">
+          💰 Add Balance
+        </button>
+
+        <div class="msg" id="balMsg"></div>
+      </div>
+
+    </div>
+
+    <!-- ── REVOKE / RESET CARD ── -->
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon">🛠️</div>
+          <h3>Key Actions</h3>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="actionKey">License Key</label>
+          <input type="text" id="actionKey" placeholder="LucidLua-XXXXX-XXXXX-XXXXX">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;gap:10px;">
+          <button class="btn btn-warning" style="flex:1;" onclick="resetHWID()">
+            🔄 Reset HWID
+          </button>
+          <button class="btn btn-danger" style="flex:1;" onclick="revokeKey()">
+            ❌ Revoke Key
+          </button>
+        </div>
+      </div>
+
+      <div class="msg" id="actionMsg"></div>
+    </div>
+
+    <!-- ── KEYS TABLE ── -->
+    <div class="card card-full">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon">📋</div>
+          <h3>All Keys</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadKeys()">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="keySearch" placeholder="🔍  Search by key, HWID, or creator…" oninput="filterKeys()">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>License Key</th>
+              <th>Created By</th>
+              <th>HWID</th>
+              <th>Expires</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="keysBody">
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-icon">🔑</div>
+                  <div>No keys loaded yet — click Refresh to load.</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.dashboard -->
+
+</div><!-- /.page -->
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ── STATE ── */
+  let adminPassword = '';
+  let allKeys = [];
+
+  /* ── HAMBURGER ── */
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
+
+  /* ── TOAST ── */
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  /* ── SHOW MSG ── */
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = `msg ${type} show`;
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  /* ── LOGIN ── */
+  async function adminLogin() {
+    const pass = document.getElementById('adminPass').value.trim();
+    if (!pass) { showMsg('loginMsg', 'Please enter the admin password.', 'error'); return; }
+
+    // Verify by attempting to load keys
+    try {
+      const res = await fetch('/admin?pass=' + encodeURIComponent(pass));
+      if (!res.ok || res.status === 200 && (await res.clone().text()) === 'Unauthorized') {
+        showMsg('loginMsg', 'Incorrect password.', 'error');
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (data === null) { showMsg('loginMsg', 'Incorrect password.', 'error'); return; }
+
+      adminPassword = pass;
+      allKeys = data;
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').classList.add('visible');
+
+      renderKeys(allKeys);
+      updateStats(allKeys);
+    } catch (e) {
+      showMsg('loginMsg', 'Connection error. Try again.', 'error');
+    }
+  }
+
+  /* Allow Enter key on password field */
+  document.getElementById('adminPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') adminLogin();
+  });
+
+  /* ── LOGOUT ── */
+  function logout() {
+    adminPassword = '';
+    allKeys = [];
+    document.getElementById('adminPass').value = '';
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('dashboard').classList.remove('visible');
+  }
+
+  /* ── LOAD KEYS ── */
+  async function loadKeys() {
+    try {
+      const res  = await fetch('/admin?pass=' + encodeURIComponent(adminPassword));
+      const data = await res.json();
+      allKeys = data;
+      renderKeys(allKeys);
+      updateStats(allKeys);
+      showToast('Keys refreshed ✓');
+    } catch (e) {
+      showToast('Failed to load keys', 'error');
+    }
+  }
+
+  /* ── UPDATE STATS ── */
+  function updateStats(keys) {
+    const now = new Date();
+    const total   = keys.length;
+    const revoked = keys.filter(k => k.revoked).length;
+    const expired = keys.filter(k => !k.revoked && new Date(k.expiresAt) < now).length;
+    const active  = total - revoked - expired;
+
+    document.getElementById('statTotal').textContent   = total;
+    document.getElementById('statActive').textContent  = active;
+    document.getElementById('statRevoked').textContent = revoked;
+    document.getElementById('statExpired').textContent = expired;
+  }
+
+  /* ── RENDER KEYS ── */
+  function renderKeys(keys) {
+    const tbody = document.getElementById('keysBody');
+    if (!keys.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔑</div><div>No keys found.</div></div></td></tr>`;
+      return;
+    }
+
+    const now = new Date();
+    tbody.innerHTML = keys.map(k => {
+      const expired = !k.revoked && new Date(k.expiresAt) < now;
+      const statusBadge = k.revoked
+        ? `<span class="badge-status revoked"><span class="badge-dot-sm"></span>Revoked</span>`
+        : expired
+          ? `<span class="badge-status expired"><span class="badge-dot-sm"></span>Expired</span>`
+          : `<span class="badge-status active"><span class="badge-dot-sm"></span>Active</span>`;
+
+      const expDate = new Date(k.expiresAt).getFullYear() >= 2999
+        ? 'Lifetime'
+        : new Date(k.expiresAt).toLocaleDateString();
+
+      return `
+        <tr>
+          <td><span class="key-mono">${k.key}</span></td>
+          <td>${k.createdBy || '—'}</td>
+          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k.hwid || '<span style="color:var(--text-dim)">None</span>'}</td>
+          <td>${expDate}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-sm btn-warning" onclick="quickReset('${k.key}')">🔄 Reset</button>
+              ${!k.revoked ? `<button class="btn btn-sm btn-danger" onclick="quickRevoke('${k.key}')">❌ Revoke</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  /* ── FILTER KEYS ── */
+  function filterKeys() {
+    const q = document.getElementById('keySearch').value.toLowerCase();
+    const filtered = allKeys.filter(k =>
+      k.key.toLowerCase().includes(q) ||
+      (k.hwid || '').toLowerCase().includes(q) ||
+      (k.createdBy || '').toLowerCase().includes(q)
+    );
+    renderKeys(filtered);
+  }
+
+  /* ── GENERATE KEY ── */
+  async function generateKey() {
+    const duration = document.getElementById('genDuration').value;
+    try {
+      const res  = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword, duration })
+      });
+      const data = await res.json();
+      if (data.key) {
+        document.getElementById('genResultKey').textContent = data.key;
+        document.getElementById('genResult').classList.add('show');
+        showToast('Key generated ✓');
+        loadKeys();
+      } else {
+        showToast('Failed to generate key', 'error');
+      }
+    } catch (e) {
+      showToast('Connection error', 'error');
+    }
+  }
+
+  /* ── COPY KEY ── */
+  function copyKey(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard ✓'));
+  }
+
+  /* ── ADD BALANCE ── */
+  async function addBalance() {
+    const username = document.getElementById('balUser').value.trim();
+    const amount   = parseInt(document.getElementById('balAmount').value);
+
+    if (!username) { showMsg('balMsg', 'Enter a username.', 'error'); return; }
+    if (!amount || amount < 1) { showMsg('balMsg', 'Enter a valid amount.', 'error'); return; }
+
+    try {
+      const res  = await fetch('/add-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword, username, amount })
+      });
+      const text = await res.text();
+      if (text === 'Balance added') {
+        showMsg('balMsg', `Added ${amount} keys to ${username}.`, 'success');
+        document.getElementById('balUser').value   = '';
+        document.getElementById('balAmount').value = '';
+      } else {
+        showMsg('balMsg', text, 'error');
+      }
+    } catch (e) {
+      showMsg('balMsg', 'Connection error.', 'error');
+    }
+  }
+
+  /* ── REVOKE KEY ── */
+  async function revokeKey() {
+    const key = document.getElementById('actionKey').value.trim();
+    if (!key) { showMsg('actionMsg', 'Enter a key.', 'error'); return; }
+
+    try {
+      const res  = await fetch('/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword, key })
+      });
+      const text = await res.text();
+      showMsg('actionMsg', text === 'Revoked' ? `Key revoked successfully.` : text,
+              text === 'Revoked' ? 'success' : 'error');
+      if (text === 'Revoked') { document.getElementById('actionKey').value = ''; loadKeys(); }
+    } catch (e) {
+      showMsg('actionMsg', 'Connection error.', 'error');
+    }
+  }
+
+  /* ── RESET HWID ── */
+  async function resetHWID() {
+    const key = document.getElementById('actionKey').value.trim();
+    if (!key) { showMsg('actionMsg', 'Enter a key.', 'error'); return; }
+
+    try {
+      const res  = await fetch('/reset-hwid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword, key })
+      });
+      const text = await res.text();
+      showMsg('actionMsg', text === 'Reset' ? `HWID reset successfully.` : text,
+              text === 'Reset' ? 'success' : 'error');
+      if (text === 'Reset') { document.getElementById('actionKey').value = ''; loadKeys(); }
+    } catch (e) {
+      showMsg('actionMsg', 'Connection error.', 'error');
+    }
+  }
+
+  /* ── QUICK TABLE ACTIONS ── */
+  async function quickRevoke(key) {
+    document.getElementById('actionKey').value = key;
+    await revokeKey();
+  }
+
+  async function quickReset(key) {
+    document.getElementById('actionKey').value = key;
+    await resetHWID();
+  }
+
+  /* ── PARTICLE BACKGROUND ── */
+  const canvas = document.getElementById('bg');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const PARTICLE_COUNT = 90;
+  const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+    x:  Math.random() * canvas.width,
+    y:  Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.55,
+    vy: (Math.random() - 0.5) * 0.55,
+    r:  Math.random() * 1.5 + 0.5,
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(59,130,246,0.7)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2   = particles[j];
+        const dx   = p.x - p2.x;
+        const dy   = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(59,130,246,${0.18 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(drawParticles);
+  }
+
+  drawParticles();
+</script>
+
+</body>
+</html>
