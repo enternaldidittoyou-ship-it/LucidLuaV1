@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LucidLua — Secure License Management</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --blue:       #3b82f6;
+      --blue-light: #60a5fa;
+      --blue-sky:   #38bdf8;
+      --bg-deep:    #020617;
+      --bg-card:    rgba(15, 23, 42, 0.6);
+      --border:     rgba(59, 130, 246, 0.2);
+      --text-muted: #94a3b8;
+      --text-dim:   #64748b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #0f172a, var(--bg-deep));
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── PARTICLE CANVAS ── */
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT WRAPPER ── */
+    .page {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: white;
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .nav-links .btn-nav {
+      color: white;
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      font-weight: 600;
+    }
+
+    .nav-links .btn-nav:hover {
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+      background: linear-gradient(90deg, var(--blue-light), var(--blue));
+    }
+
+    /* hamburger — hidden on desktop */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 110px 24px 80px;
+      gap: 24px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(59, 130, 246, 0.08);
+      font-size: 13px;
+      color: var(--blue-light);
+      letter-spacing: 0.5px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue-sky);
+      box-shadow: 0 0 8px var(--blue-sky);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 7vw, 76px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--blue-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 560px;
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      color: white;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(59, 130, 246, 0.55);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ── STATS BAR ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 160px;
+      padding: 28px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── FEATURES ── */
+    .section {
+      padding: 90px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── CTA CARDS ── */
+    .cta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      padding: 0 24px 90px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .cta-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      text-align: center;
+      text-decoration: none;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+
+    .cta-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .cta-icon {
+      font-size: 32px;
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cta-card h3 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .cta-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .cta-arrow {
+      font-size: 13px;
+      color: var(--blue-light);
+      margin-top: 4px;
+    }
+
+    /* ── KEY FORMAT SHOWCASE ── */
+    .key-showcase {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 40px;
+      backdrop-filter: blur(16px);
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 90px;
+    }
+
+    .key-showcase h3 {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    .key-display {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(16px, 3vw, 22px);
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      word-break: break-all;
+    }
+
+    .key-parts {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .key-part {
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .key-sep {
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      background: rgba(2, 6, 23, 0.6);
+      backdrop-filter: blur(10px);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-brand {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: white; }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 680px) {
+      nav { padding: 16px 20px; }
+
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(2, 6, 23, 0.97);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        gap: 4px;
+      }
+
+      .nav-links.open { display: flex; }
+
+      .nav-links a { padding: 12px 16px; }
+
+      .hamburger { display: flex; }
+
+      .hero { padding: 80px 20px 60px; }
+
+      .stat-item { min-width: 140px; }
+
+      .section { padding: 60px 20px; }
+
+      .key-showcase { margin: 0 20px 60px; padding: 28px 20px; }
+
+      .cta-grid { padding: 0 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="page">
+
+  <!-- ── NAVBAR ── -->
+  <nav>
+    <a class="nav-brand" href="/">LucidLua</a>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/index.html">Redeem Key</a></li>
+      <li><a href="/user.html">Dashboard</a></li>
+      <li><a href="/admin.html">Admin</a></li>
+      <li><a href="/user.html" class="btn-nav">Login</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      System Online &amp; Operational
+    </div>
+
+    <h1>Secure License<br>Management</h1>
+
+    <p>
+      LucidLua provides hardware-locked license keys, HWID binding, and
+      a full reseller system — keeping your software protected and your
+      users authenticated.
+    </p>
+
+    <div class="hero-actions">
+      <a href="/index.html" class="btn btn-primary">
+        🔑 Redeem a Key
+      </a>
+      <a href="/user.html" class="btn btn-ghost">
+        👤 Reseller Login
+      </a>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value">HWID</div>
+      <div class="stat-label">Hardware Locked</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">SHA-256</div>
+      <div class="stat-label">Encrypted Tokens</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">4</div>
+      <div class="stat-label">Key Durations</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">REST</div>
+      <div class="stat-label">API Ready</div>
+    </div>
+  </div>
+
+  <!-- ── FEATURES ── -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Everything You Need</h2>
+      <p>A complete key management stack built for reliability and security.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>HWID Binding</h3>
+        <p>
+          Keys are automatically locked to the first hardware ID that redeems
+          them. No sharing, no leaking — one key, one machine.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <h3>Flexible Expiry</h3>
+        <p>
+          Issue keys for 1 day, 7 days, 30 days, or lifetime. Expiry is
+          enforced server-side on every authentication request.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>Encrypted Auth Tokens</h3>
+        <p>
+          Successful authentications return an HMAC-SHA256 token derived from
+          the key and HWID — impossible to forge without the server secret.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Reseller System</h3>
+        <p>
+          Grant resellers a balance of keys to distribute. Each reseller can
+          generate keys independently without admin involvement.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>HWID Reset</h3>
+        <p>
+          Admins can reset the hardware lock on any key, letting a user
+          migrate to a new machine without losing their license.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">❌</div>
+        <h3>Instant Revocation</h3>
+        <p>
+          Revoke any key immediately from the admin panel. Revoked keys are
+          rejected on the next authentication attempt — no delays.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── KEY FORMAT ── -->
+  <div class="key-showcase">
+    <h3>License Key Format</h3>
+    <div class="key-display">LucidLua-XXXXX-XXXXX-XXXXX</div>
+    <div class="key-parts">
+      <span class="key-part">Prefix</span>
+      <span class="key-sep">—</span>
+      <span class="key-part">5 chars</span>
+      <span class="key-sep">—</span>
+      <span class="key-part">5 chars</span>
+      <span class="key-sep">—</span>
+      <span class="key-part">5 chars</span>
+    </div>
+  </div>
+
+  <!-- ── QUICK ACCESS CARDS ── -->
+  <div class="cta-grid">
+    <a href="/index.html" class="cta-card">
+      <div class="cta-icon">🔑</div>
+      <h3>Redeem Key</h3>
+      <p>Activate your license key and bind it to your hardware ID.</p>
+      <span class="cta-arrow">Get started →</span>
+    </a>
+
+    <a href="/user.html" class="cta-card">
+      <div class="cta-icon">👤</div>
+      <h3>Reseller Login</h3>
+      <p>Log in to your reseller account to generate and manage keys.</p>
+      <span class="cta-arrow">Sign in →</span>
+    </a>
+
+    <a href="/admin.html" class="cta-card">
+      <div class="cta-icon">⚙️</div>
+      <h3>Admin Panel</h3>
+      <p>Full control — generate keys, manage users, revoke and reset.</p>
+      <span class="cta-arrow">Open panel →</span>
+    </a>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-brand">LucidLua</div>
+    <div class="footer-links">
+      <a href="/index.html">Redeem Key</a>
+      <a href="/user.html">Reseller Dashboard</a>
+      <a href="/admin.html">Admin Panel</a>
+    </div>
+    <div class="footer-copy">© 2025 LucidLua Systems. All rights reserved.</div>
+  </footer>
+
+</div><!-- /.page -->
+
+<script>
+  /* ── HAMBURGER MENU ── */
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+
+  hamburger.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+  });
+
+  /* ── PARTICLE BACKGROUND ── */
+  const canvas = document.getElementById('bg');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const PARTICLE_COUNT = 90;
+  const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+    x:  Math.random() * canvas.width,
+    y:  Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.55,
+    vy: (Math.random() - 0.5) * 0.55,
+    r:  Math.random() * 1.5 + 0.5,
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(59,130,246,0.7)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2   = particles[j];
+        const dx   = p.x - p2.x;
+        const dy   = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(59,130,246,${0.18 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(drawParticles);
+  }
+
+  drawParticles();
+</script>
+
+</body>
+</html>
