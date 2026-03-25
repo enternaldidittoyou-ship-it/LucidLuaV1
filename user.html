@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>LucidLua Panel</title>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background: radial-gradient(circle, #0f172a, #020617);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+/* CARD */
+.card {
+  width:350px;
+  padding:30px;
+  border-radius:20px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 0 40px rgba(56,189,248,0.2);
+  text-align:center;
+}
+
+/* INPUT */
+input {
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+  border:none;
+  border-radius:10px;
+  background:#020617;
+  color:white;
+}
+
+/* BUTTON */
+button {
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#38bdf8;
+  color:black;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover {
+  opacity:0.8;
+}
+
+/* TEXT */
+.title {
+  font-size:22px;
+  margin-bottom:15px;
+  color:#38bdf8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="login">
+  <div class="title">LucidLua Login</div>
+  <input id="user" placeholder="Username">
+  <input id="pass" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<div class="card" id="panel" style="display:none;">
+  <div class="title">Dashboard</div>
+
+  <p id="welcome"></p>
+  <p id="balance"></p>
+
+  <button onclick="gen()">Generate Key</button>
+
+  <p id="result"></p>
+</div>
+
+<script>
+let currentUser="";
+
+async function login(){
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("pass").value;
+
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username,password})
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    currentUser = data.username;
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+
+    document.getElementById("welcome").innerText =
+      "User: " + data.username + " ("+data.role+")";
+
+    document.getElementById("balance").innerText =
+      "Balance: " + data.balance;
+  }
+}
+
+async function gen(){
+  const res = await fetch("/user-generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username:currentUser,duration:"1"})
+  });
+
+  const data = await res.json();
+  document.getElementById("result").innerText = data.key || data;
+}
+</script>
+
+</body>
+</html>

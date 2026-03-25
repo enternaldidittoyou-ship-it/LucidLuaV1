@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LucidLua</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color: white;
+  overflow: hidden;
+}
+
+/* PARTICLE CANVAS */
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+/* MAIN CARD */
+.container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  padding: 40px;
+  border-radius: 20px;
+
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+
+  box-shadow:
+    0 0 20px rgba(59,130,246,0.3),
+    inset 0 0 20px rgba(59,130,246,0.1);
+
+  animation: float 4s ease-in-out infinite;
+}
+
+/* FLOAT ANIMATION */
+@keyframes float {
+  0%,100% { transform: translate(-50%, -50%) translateY(0px); }
+  50% { transform: translate(-50%, -50%) translateY(-8px); }
+}
+
+/* TITLE */
+.title {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 2px;
+
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 25px;
+}
+
+/* INPUTS */
+input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 15px;
+
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+
+  background: #020617;
+  color: white;
+
+  transition: 0.2s;
+}
+
+input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59,130,246,0.4);
+  outline: none;
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 14px;
+
+  border-radius: 10px;
+  border: none;
+
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  color: white;
+
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 15px rgba(59,130,246,0.6);
+}
+
+/* RESULT */
+#result {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.success { color: #22c55e; }
+.error { color: #ef4444; }
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+  <div class="title">LucidLua</div>
+  <div class="subtitle">Secure Authentication System</div>
+
+  <input id="hwid" placeholder="Macho Authentication Key">
+  <input id="key" placeholder="License Key (LucidLua-XXXXX-XXXXX-XXXXX)">
+
+  <button onclick="redeem()">Authenticate</button>
+
+  <div id="result"></div>
+
+  <div class="footer">© LucidLua Systems</div>
+</div>
+
+<script>
+async function redeem() {
+  const hwid = document.getElementById("hwid").value;
+  const key = document.getElementById("key").value;
+
+  const result = document.getElementById("result");
+  result.innerText = "Verifying Key....";
+  result.className = "";
+
+  const res = await fetch("/redeem", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ hwid, key })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    result.innerText = "✔ Access Granted";
+    result.className = "Key Verified nowhave Access to Lucid Lua";
+  } else {
+    result.innerText = "✖ " + data.msg;
+    result.className = "Invalid Key Contact Support";
+  }
+}
+
+/* PARTICLES (UPGRADED) */
+const canvas = document.getElementById("bg");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles = [];
+
+for (let i = 0; i < 80; i++) {
+  particles.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    vx: (Math.random()-0.5)*0.7,
+    vy: (Math.random()-0.5)*0.7
+  });
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  particles.forEach(p=>{
+    p.x += p.vx;
+    p.y += p.vy;
+
+    ctx.fillStyle = "#3b82f6";
+    ctx.fillRect(p.x, p.y, 2, 2);
+
+    // connect lines
+    particles.forEach(p2=>{
+      let dx = p.x - p2.x;
+      let dy = p.y - p2.y;
+      let dist = Math.sqrt(dx*dx+dy*dy);
+
+      if (dist < 100) {
+        ctx.strokeStyle = "rgba(59,130,286,9.)";
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(p2.x,p2.y);
+        ctx.stroke();
+      }
+    });
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+
+</body>
+</html>
