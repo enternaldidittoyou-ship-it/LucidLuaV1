@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LucidLua — Dashboard</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --blue:       #3b82f6;
+      --blue-light: #60a5fa;
+      --blue-sky:   #38bdf8;
+      --red:        #ef4444;
+      --red-light:  #f87171;
+      --green:      #22c55e;
+      --bg-deep:    #020617;
+      --bg-card:    rgba(15, 23, 42, 0.6);
+      --border:     rgba(59, 130, 246, 0.2);
+      --text-muted: #94a3b8;
+      --text-dim:   #64748b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #0f172a, var(--bg-deep));
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: white;
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .nav-links .btn-nav {
+      color: white;
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      font-weight: 600;
+    }
+
+    .nav-links .btn-nav:hover {
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.5);
+      background: linear-gradient(90deg, var(--blue-light), var(--blue));
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    /* ── AUTH GATE ── */
+    .auth-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 73px);
+      padding: 40px 24px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      backdrop-filter: blur(16px);
+      text-align: center;
+    }
+
+    .auth-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    .auth-card h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .auth-card .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    /* ── TABS ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: rgba(2, 6, 23, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      color: white;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(2, 6, 23, 0.8);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-group select option {
+      background: #0f172a;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--blue), #2563eb);
+      color: white;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+      text-align: left;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--red-light);
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+    }
+
+    .alert-info {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: var(--blue-light);
+    }
+
+    /* ── DASHBOARD ── */
+    .dashboard {
+      display: none;
+      padding: 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .role-admin {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--red-light);
+    }
+
+    .role-reseller {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: var(--blue-light);
+    }
+
+    .role-user {
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: var(--text-muted);
+    }
+
+    .logout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .logout-btn:hover {
+      color: white;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stat-icon {
+      font-size: 24px;
+      width: 46px;
+      height: 46px;
+      border-radius: 11px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-info .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--blue), var(--blue-sky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .stat-info .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── PANEL GRID ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .card-header-icon {
+      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── RESULT BOX ── */
+    .result-box {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: var(--blue-light);
+      word-break: break-all;
+      display: none;
+      position: relative;
+    }
+
+    .result-box.visible { display: block; }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--blue-light);
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    /* ── HWID DISPLAY ── */
+    .hwid-display {
+      padding: 14px 16px;
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .hwid-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── INFO ROW ── */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.08);
+      font-size: 13px;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+
+    .info-row .info-label {
+      color: var(--text-muted);
+    }
+
+    .info-row .info-value {
+      font-weight: 600;
+      color: white;
+    }
+
+    /* ── TOAST ── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      backdrop-filter: blur(16px);
+      animation: slideIn 0.3s ease;
+      max-width: 320px;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+
+    .toast-success {
+      background: rgba(22, 163, 74, 0.85);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: white;
+    }
+
+    .toast-error {
+      background: rgba(220, 38, 38, 0.85);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: white;
+    }
+
+    .toast-info {
+      background: rgba(37, 99, 235, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: white;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      background: rgba(2, 6, 23, 0.6);
+      backdrop-filter: blur(10px);
+      padding: 32px 24px;
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    .footer-brand {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: white; }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 680px) {
+      nav { padding: 16px 20px; }
+
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(2, 6, 23, 0.97);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        gap: 4px;
+      }
+
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 12px 16px; }
+      .hamburger { display: flex; }
+
+      .dashboard { padding: 24px 16px; }
+
+      .panel-grid { grid-template-columns: 1fr; }
+
+      .auth-card { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="page">
+
+  <!-- ── NAVBAR ── -->
+  <nav>
+    <a class="nav-brand" href="/">LucidLua</a>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/index.html">Redeem Key</a></li>
+      <li><a href="/user.html" class="btn-nav">Dashboard</a></li>
+      <li><a href="/admin.html">Admin</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── AUTH GATE ── -->
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <div class="auth-icon">👤</div>
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Sign in to your reseller or user account to manage your keys and balance.</p>
+
+      <!-- TABS -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('login', this)">🔑 Login</button>
+        <button class="tab-btn" onclick="switchTab('redeem', this)">🎟️ Redeem Key</button>
+      </div>
+
+      <!-- LOGIN TAB -->
+      <div class="tab-panel active" id="tab-login">
+        <div class="form-group">
+          <label for="loginUser">Username</label>
+          <input type="text" id="loginUser" placeholder="your_username" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" placeholder="••••••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" onclick="doLogin()">
+          🚀 Sign In
+        </button>
+        <div class="alert" id="loginAlert"></div>
+      </div>
+
+      <!-- REDEEM TAB -->
+      <div class="tab-panel" id="tab-redeem">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;text-align:left;line-height:1.6;">
+          Enter your license key below. It will be bound to your current hardware ID on first use.
+        </p>
+        <div class="form-group">
+          <label for="redeemKey">License Key</label>
+          <input type="text" id="redeemKey" placeholder="LucidLua-XXXXX-XXXXX-XXXXX" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" onclick="redeemKey()">
+          🔑 Redeem Key
+        </button>
+        <div class="alert" id="redeemAlert"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="dashboard" id="dashboard">
+
+    <div class="dashboard-header">
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div>
+          <div class="user-name" id="userName">
+            —
+            <span class="role-badge" id="roleBadge"></span>
+          </div>
+          <div class="user-role" id="userRoleText">Loading…</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <div class="stat-value" id="statBalance">—</div>
+          <div class="stat-label">Key Balance</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔑</div>
+        <div class="stat-info">
+          <div class="stat-value" id="statRole">—</div>
+          <div class="stat-label">Account Role</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🛡️</div>
+        <div class="stat-info">
+          <div class="stat-value" id="statStatus">Active</div>
+          <div class="stat-label">Account Status</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANELS -->
+    <div class="panel-grid">
+
+      <!-- GENERATE KEY (reseller/admin only) -->
+      <div class="card" id="generateCard">
+        <div class="card-header">
+          <div class="card-header-icon">✨</div>
+          <div>
+            <h3>Generate Key</h3>
+            <p>Use your balance to create a new license key.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="genDuration">Duration</label>
+          <select id="genDuration">
+            <option value="1">1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="30">30 Days</option>
+            <option value="lifetime">Lifetime</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px;color:var(--text-dim);">
+            Remaining balance: <span id="balanceDisplay" style="color:var(--blue-light);font-weight:600;">—</span> key(s)
+          </label>
+        </div>
+
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="generateKey()">
+            ✨ Generate Key
+          </button>
+        </div>
+
+        <div class="result-box" id="genResult">
+          <button class="copy-btn" onclick="copyKey()">Copy</button>
+          <span id="genKeyText"></span>
+        </div>
+
+        <div class="alert" id="genAlert"></div>
+      </div>
+
+      <!-- REDEEM KEY -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-icon">🎟️</div>
+          <div>
+            <h3>Redeem a Key</h3>
+            <p>Activate a license key and bind it to your HWID.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="dashRedeemKey">License Key</label>
+          <input type="text" id="dashRedeemKey" placeholder="LucidLua-XXXXX-XXXXX-XXXXX">
+        </div>
+
+        <button class="btn btn-primary" onclick="dashRedeem()">
+          🔑 Redeem Key
+        </button>
+
+        <div class="alert" id="dashRedeemAlert"></div>
+      </div>
+
+      <!-- HWID INFO -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-icon">🖥️</div>
+          <div>
+            <h3>Hardware ID</h3>
+            <p>Your current machine identifier.</p>
+          </div>
+        </div>
+
+        <div class="hwid-label">Current HWID</div>
+        <div class="hwid-display" id="hwidDisplay">
+          Detecting hardware ID…
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="info-row">
+            <span class="info-label">HWID Status</span>
+            <span class="info-value" style="color:#4ade80;">● Detected</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Binding</span>
+            <span class="info-value" style="color:var(--text-muted);">On first redeem</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT INFO -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-icon">👤</div>
+          <div>
+            <h3>Account Details</h3>
+            <p>Your account information and permissions.</p>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <span class="info-label">Username</span>
+          <span class="info-value" id="infoUsername">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Role</span>
+          <span class="info-value" id="infoRole">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Balance</span>
+          <span class="info-value" id="infoBalance">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Can Generate</span>
+          <span class="info-value" id="infoCanGen">—</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.6;">
+          Need your balance topped up? Contact an admin with your username.
+        </p>
+      </div>
+
+    </div>
+  </div><!-- /.dashboard -->
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-brand">LucidLua</div>
+    <div class="footer-links">
+      <a href="/index.html">Redeem Key</a>
+      <a href="/user.html">Reseller Dashboard</a>
+      <a href="/admin.html">Admin Panel</a>
+    </div>
+    <div class="footer-copy">© 2025 LucidLua Systems. All rights reserved.</div>
+  </footer>
+
+</div><!-- /.page -->
+
+<!-- ── TOAST CONTAINER ── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  /* ── STATE ── */
+  let currentUser = null;
+  let hwid = '';
+
+  /* ── HAMBURGER ── */
+  const hamburger = document.getElementById('hamburger');
+  const navLinks   = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
+
+  /* ── HWID GENERATION ── */
+  // Generate a stable browser-based HWID from available fingerprint signals
+  async function getHWID() {
+    const raw = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      screen.colorDepth,
+      new Date().getTimezoneOffset(),
+      navigator.hardwareConcurrency || '',
+      navigator.platform || ''
+    ].join('|');
+
+    // Use SubtleCrypto if available for a proper hash
+    if (window.crypto && window.crypto.subtle) {
+      const enc  = new TextEncoder();
+      const buf  = await window.crypto.subtle.digest('SHA-256', enc.encode(raw));
+      const arr  = Array.from(new Uint8Array(buf));
+      return arr.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 32);
+    }
+
+    // Fallback: simple hash
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) {
+      h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h).toString(16).toUpperCase().padStart(8, '0');
+  }
+
+  /* ── TOAST ── */
+  function toast(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  /* ── SHOW ALERT ── */
+  function showAlert(el, msg, type) {
+    el.textContent = msg;
+    el.className   = `alert alert-${type}`;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4500);
+  }
+
+  /* ── TABS ── */
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  /* ── LOGIN ── */
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const alert    = document.getElementById('loginAlert');
+
+    if (!username || !password) {
+      showAlert(alert, 'Please enter your username and password.', 'error');
+      return;
+    }
+
+    try {
+      const res  = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentUser = data;
+        showDashboard(data);
+      } else {
+        showAlert(alert, 'Invalid username or password.', 'error');
+      }
+    } catch (e) {
+      showAlert(alert, 'Network error. Please try again.', 'error');
+    }
+  }
+
+  document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  /* ── SHOW DASHBOARD ── */
+  async function showDashboard(user) {
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    // Avatar initial
+    document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+
+    // Name + role badge
+    document.getElementById('userName').innerHTML =
+      user.username + ' ' + roleBadgeHTML(user.role);
+
+    document.getElementById('userRoleText').textContent =
+      user.role === 'admin'    ? 'Administrator — full system access' :
+      user.role === 'reseller' ? 'Reseller — can generate and distribute keys' :
+                                 'Standard user account';
+
+    // Stats
+    document.getElementById('statBalance').textContent = user.balance ?? 0;
+    document.getElementById('statRole').textContent    = capitalize(user.role);
+
+    // Info panel
+    document.getElementById('infoUsername').textContent = user.username;
+    document.getElementById('infoRole').textContent     = capitalize(user.role);
+    document.getElementById('infoBalance').textContent  = (user.balance ?? 0) + ' key(s)';
+    document.getElementById('infoCanGen').textContent   =
+      (user.role === 'reseller' || user.role === 'admin') ? '✅ Yes' : '❌ No';
+
+    // Balance display
+    document.getElementById('balanceDisplay').textContent = user.balance ?? 0;
+
+    // Show/hide generate card
+    const genCard = document.getElementById('generateCard');
+    if (user.role !== 'reseller' && user.role !== 'admin') {
+      genCard.style.display = 'none';
+    }
+
+    // HWID
+    hwid = await getHWID();
+    document.getElementById('hwidDisplay').textContent = hwid;
+  }
+
+  function roleBadgeHTML(role) {
+    const cls = role === 'admin' ? 'role-admin' : role === 'reseller' ? 'role-reseller' : 'role-user';
+    const icon = role === 'admin' ? '🛡️' : role === 'reseller' ? '💼' : '👤';
+    return `<span class="role-badge ${cls}">${icon} ${capitalize(role)}</span>`;
+  }
+
+  function capitalize(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+
+  /* ── LOGOUT ── */
+  function logout() {
+    currentUser = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('authGate').style.display  = 'flex';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('genResult').classList.remove('visible');
+  }
+
+  /* ── REDEEM KEY (auth gate) ── */
+  async function redeemKey() {
+    const key   = document.getElementById('redeemKey').value.trim();
+    const alert = document.getElementById('redeemAlert');
+
+    if (!key) {
+      showAlert(alert, 'Please enter a license key.', 'error');
+      return;
+    }
+
+    if (!hwid) hwid = await getHWID();
+
+    try {
+      const res  = await fetch('/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, hwid })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showAlert(alert, '✅ Key redeemed successfully! Your HWID has been bound.', 'success');
+        document.getElementById('redeemKey').value = '';
+        toast('Key redeemed!', 'success');
+      } else {
+        showAlert(alert, '❌ ' + (data.msg || 'Failed to redeem key.'), 'error');
+      }
+    } catch (e) {
+      showAlert(alert, 'Network error. Please try again.', 'error');
+    }
+  }
+
+  document.getElementById('redeemKey').addEventListener('keydown', e => {
+    if (e.key === 'Enter') redeemKey();
+  });
+
+  /* ── REDEEM KEY (dashboard) ── */
+  async function dashRedeem() {
+    const key   = document.getElementById('dashRedeemKey').value.trim();
+    const alert = document.getElementById('dashRedeemAlert');
+
+    if (!key) {
+      showAlert(alert, 'Please enter a license key.', 'error');
+      return;
+    }
+
+    if (!hwid) hwid = await getHWID();
+
+    try {
+      const res  = await fetch('/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, hwid })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showAlert(alert, '✅ Key redeemed and bound to your HWID.', 'success');
+        document.getElementById('dashRedeemKey').value = '';
+        toast('Key redeemed!', 'success');
+      } else {
+        showAlert(alert, '❌ ' + (data.msg || 'Failed to redeem key.'), 'error');
+      }
+    } catch (e) {
+      showAlert(alert, 'Network error. Please try again.', 'error');
+    }
+  }
+
+  /* ── GENERATE KEY ── */
+  async function generateKey() {
+    if (!currentUser) return;
+
+    const duration = document.getElementById('genDuration').value;
+    const alert    = document.getElementById('genAlert');
+    const box      = document.getElementById('genResult');
+    const keyText  = document.getElementById('genKeyText');
+
+    if (currentUser.balance <= 0) {
+      showAlert(alert, 'Insufficient balance. Contact an admin to top up.', 'error');
+      return;
+    }
+
+    try {
+      const res  = await fetch('/user-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, duration })
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('json')) {
+        const data = await res.json();
+        if (data.key) {
+          keyText.textContent = data.key;
+          box.classList.add('visible');
+          currentUser.balance--;
+          document.getElementById('statBalance').textContent  = currentUser.balance;
+          document.getElementById('infoBalance').textContent  = currentUser.balance + ' key(s)';
+          document.getElementById('balanceDisplay').textContent = currentUser.balance;
+          toast('Key generated!', 'success');
+        } else {
+          showAlert(alert, 'Failed to generate key.', 'error');
+        }
+      } else {
+        const text = await res.text();
+        showAlert(alert, text || 'Failed to generate key.', 'error');
+      }
+    } catch (e) {
+      showAlert(alert, 'Network error. Please try again.', 'error');
+    }
+  }
+
+  /* ── COPY KEY ── */
+  function copyKey() {
+    const key = document.getElementById('genKeyText').textContent;
+    navigator.clipboard.writeText(key).then(() => {
+      toast('Key copied to clipboard!', 'success');
+    }).catch(() => {
+      toast('Could not copy — please copy manually.', 'error');
+    });
+  }
+
+  /* ── INIT HWID ── */
+  getHWID().then(id => {
+    hwid = id;
+  });
+
+  /* ── PARTICLE BACKGROUND ── */
+  const canvas = document.getElementById('bg');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const PARTICLE_COUNT = 70;
+  const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+    x:  Math.random() * canvas.width,
+    y:  Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.45,
+    vy: (Math.random() - 0.5) * 0.45,
+    r:  Math.random() * 1.5 + 0.5,
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(59,130,246,0.6)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2   = particles[j];
+        const dx   = p.x - p2.x;
+        const dy   = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(59,130,246,${0.15 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(drawParticles);
+  }
+
+  drawParticles();
+</script>
+
+</body>
+</html>
